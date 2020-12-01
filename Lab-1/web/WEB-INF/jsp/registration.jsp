@@ -7,7 +7,7 @@
 <body>
 
 <div style="min-height: 100vh; padding-top: 120px">
-    <form method="post">
+    <form action="${pageContext.request.contextPath}/app/registration.html" method="post">
         <div >
             <label for="name">name</label>
             <input id="name" name="name" placeholder="name">

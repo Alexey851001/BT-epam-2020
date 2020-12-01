@@ -9,5 +9,7 @@ public interface Dao<T extends Entity> {
 
     T getById(int id) throws DaoException;
 
+    List<T> getList(Filter filter) throws DaoException;
+
     void delete(T t) throws DaoException;
 }
