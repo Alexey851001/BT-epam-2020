@@ -64,6 +64,14 @@ public class Service {
         }
     }
 
+    public void saveTest(TestEntity test) throws ServiceException {
+        try {
+            testDao.add(test);
+        } catch (DaoException e) {
+            throw new ServiceException(e);
+        }
+    }
+
     public void saveAnswers(UserEntity user, List<AnswerEntity> answers, String testId) throws ServiceException {
         try {
             for (AnswerEntity answer : answers) {

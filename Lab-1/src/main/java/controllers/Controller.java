@@ -1,16 +1,19 @@
 package controllers;
 
-import entity.RoleEntity;
-import entity.UserEntity;
+import entity.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import services.Service;
 import services.ServiceException;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 
 public class Controller extends javax.servlet.http.HttpServlet {
@@ -29,8 +32,16 @@ public class Controller extends javax.servlet.http.HttpServlet {
                 signup(request, response);
                 break;
             }
+            case "save-test.html": {
+                saveTest(request, response);
+                break;
+            }
+            case "save-answer.html": {
+                saveAnswer(request, response);
+                break;
+            }
             default : {
-                //response.sendError(404);
+                response.sendError(404);
                 break;
             }
         }
@@ -49,6 +60,84 @@ public class Controller extends javax.servlet.http.HttpServlet {
                 request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request,response);
                 break;
             }
+            case "list.html":{
+                list(request, response);
+                break;
+            }
+            case "add.html": {
+                request.getRequestDispatcher("/WEB-INF/jsp/add.jsp").forward(request, response);
+                break;
+            }
+            case "answer.html":{
+                answer(request,response);
+                break;
+            }
+            case "details.html" :{
+                details(request,response);
+                break;
+            }
+            case "delete-test.html": {
+                deleteTest(request, response);
+                break;
+            }
+            case "students.html":{
+                students(request, response);
+                break;
+            }
+            default: {
+                response.sendError(404);
+                break;
+            }
+        }
+    }
+
+    private void students(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String testId = request.getParameter("id");
+
+        List<UserEntity> students;
+        try {
+            students = service.getStudents(testId);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+            return;
+        }
+
+        request.setAttribute("students", students);
+        request.setAttribute("testId", testId);
+        request.getRequestDispatcher("/WEB-INF/jsp/students.jsp").forward(request, response);
+    }
+
+    private void deleteTest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        int testId = Integer.parseInt(request.getParameter("id"));
+        try {
+            service.deleteTest(testId);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/app/list.html");
+    }
+
+    private void details(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String testId = request.getParameter("id");
+
+        TestEntity test;
+        try {
+            test = service.getTest(testId);
+            request.setAttribute("test", test);
+
+            if (request.getParameter("studentId") != null) {
+                List<AnswerEntity> answers = service.getAnswers(test, request.getParameter("studentId"));
+                request.setAttribute("answers", answers);
+            }
+
+            request.getRequestDispatcher("/WEB-INF/jsp/details.jsp").forward(request, response);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
         }
     }
 
@@ -106,5 +195,101 @@ public class Controller extends javax.servlet.http.HttpServlet {
         } else {
             response.sendRedirect(request.getContextPath() + "/app/login.html");
         }
+    }
+
+    private void list(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        UserEntity user = (UserEntity) request.getSession().getAttribute("user");
+        try {
+            List<TestEntity> tests = service.getTests(user);
+
+            if (user.getRole() == RoleEntity.Student) {
+                List<TestEntity> completeTests;
+                completeTests = service.getTakenTests(user);
+                request.setAttribute("completeTests", completeTests);
+            }
+
+            request.setAttribute("tests", tests);
+            request.getRequestDispatcher("/WEB-INF/jsp/list.jsp").forward(request, response);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+        }
+    }
+
+    private void saveTest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession();
+        UserEntity user = (UserEntity) session.getAttribute("user");
+        Enumeration<String> parameterNames = request.getParameterNames();
+
+        LinkedList<QuestionEntity> questions = new LinkedList<QuestionEntity>();
+        while (parameterNames.hasMoreElements()) {
+            String parameterName = parameterNames.nextElement();
+            if (parameterName.startsWith("question-")) {
+                QuestionEntity question = new QuestionEntity();
+                question.setText(request.getParameter(parameterName));
+                question.setCorrectAnswer(request.getParameter("answer-" + parameterName.substring(9)));
+                questions.add(question);
+            }
+        }
+
+        TestEntity test = new TestEntity();
+        test.setQuestions(questions);
+        test.setTeacherId(user.getId());
+        test.setName(request.getParameter("test-name"));
+
+        try {
+            service.saveTest(test);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/app/list.html");
+    }
+
+    private void saveAnswer(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession();
+        UserEntity user = (UserEntity) session.getAttribute("user");
+
+        Enumeration<String> parameterNames = request.getParameterNames();
+
+        LinkedList<AnswerEntity> answers = new LinkedList<AnswerEntity>();
+        while (parameterNames.hasMoreElements()) {
+            String parameterName = parameterNames.nextElement();
+            if (parameterName.startsWith("question-")) {
+                AnswerEntity answer = new AnswerEntity();
+                answer.setText(request.getParameter(parameterName));
+                answer.setQuestionId(Integer.parseInt(parameterName.substring(9)));
+                answer.setStudentId(user.getId());
+                answers.add(answer);
+            }
+        }
+
+        try {
+            service.saveAnswers(user, answers, request.getParameter("id"));
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/app/list.html");
+    }
+
+    private void answer(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String testId = request.getParameter("id");
+
+        TestEntity test;
+        try {
+            test = service.getTest(testId);
+        } catch (ServiceException e) {
+            logger.error(e.getMessage());
+            response.sendError(500);
+            return;
+        }
+
+        request.setAttribute("test", test);
+        request.getRequestDispatcher("/WEB-INF/jsp/answer.jsp").forward(request, response);
     }
 }

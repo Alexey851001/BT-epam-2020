@@ -132,7 +132,6 @@ public class TestDao implements Dao<TestEntity>{
 
                 tests.add(test);
             }
-
             return tests;
         } catch (SQLException | ConnectionException e) {
             throw new DaoException(e);
@@ -154,7 +153,7 @@ public class TestDao implements Dao<TestEntity>{
             statement.setInt(1, testEntity.getId());
             statement.executeUpdate();
 
-            String sql2 = "DELETE questions, answers FROM question INNER JOIN answers WHERE questions.id = answers.question_id AND questions.test_id = ?";
+            String sql2 = "DELETE questions, answers FROM questions INNER JOIN answers WHERE questions.id = answers.question_id AND questions.test_id = ?";
             statement = connection.prepareStatement(sql2);
             statement.setInt(1, testEntity.getId());
             statement.executeUpdate();
@@ -178,7 +177,7 @@ public class TestDao implements Dao<TestEntity>{
             pool = ConnectionPool.getConnectionPool();
             connection = pool.getConnection();
 
-            String sql = "INSERT INTO taken_test (test_id, student_id) VALUES (?, ?)";
+            String sql = "INSERT INTO complete_tests (test_id, student_id) VALUES (?, ?)";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, testId);
             statement.setInt(2, user.getId());

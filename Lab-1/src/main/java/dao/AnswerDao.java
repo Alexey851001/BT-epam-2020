@@ -16,7 +16,7 @@ public class AnswerDao implements Dao<AnswerEntity>{
             pool = ConnectionPool.getConnectionPool();
             connection = pool.getConnection();
 
-            String sql = "INSERT INTO answer (text, question_id, student_id) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO answers (text, question_id, student_id) VALUES (?, ?, ?)";
             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, answerEntity.getText());
             statement.setInt(2, answerEntity.getQuestionId());
