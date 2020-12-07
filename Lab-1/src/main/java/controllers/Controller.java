@@ -84,32 +84,11 @@ public class Controller extends javax.servlet.http.HttpServlet {
                 students(request, response);
                 break;
             }
-            case "lang.html":{
-                lang(request, response);
-                break;
-            }
-            case "signout.html":{
-                signout(request, response);
-                break;
-            }
             default: {
                 response.sendError(404);
                 break;
             }
         }
-    }
-
-    private void signout(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        HttpSession session = request.getSession();
-        session.removeAttribute("user");
-        response.sendRedirect(request.getContextPath() + "/");
-    }
-
-    private void lang(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String lang = request.getParameter("value");
-        HttpSession session = request.getSession();
-        session.setAttribute("lang", lang);
-        response.getWriter().println("Language changed");
     }
 
     private void students(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
